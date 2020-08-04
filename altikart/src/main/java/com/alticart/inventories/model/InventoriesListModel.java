@@ -13,5 +13,5 @@ public class InventoriesListModel {
 
 	private String responseCode;
 	private String responseMsg;
-	private List<InventoriesEntity> stockInfo;
+	private List<InventoriesModel> stockInfo;
 }

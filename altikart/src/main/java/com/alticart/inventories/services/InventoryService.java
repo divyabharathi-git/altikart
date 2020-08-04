@@ -29,9 +29,11 @@ public class InventoryService implements InventoryServiceI {
 
 		InventoriesListModel list = new InventoriesListModel();
 		List<InventoriesEntity> inventoryRepoList = new ArrayList();
-		
+		List<InventoriesModel> inventoryModelList = new ArrayList();
+		inventoryModelList = convert(inventoryRepoList, inventoryModelList);
+		inventoryModelList.forEach(s->System.out.println(s));
 		inventoryRepoList = inventoryRepository.findAll();
-		list.setStockInfo(inventoryRepoList.stream().filter(p->p.getQuantity()!=0).collect(Collectors.toList()));
+		list.setStockInfo(inventoryModelList);//inventoryRepoList.stream().filter(p->p.getQuantity()!=0).collect(Collectors.toList()));
 		list.setResponseCode(HttpStatus.OK.toString());
 		list.setResponseMsg(HttpStatus.OK.getReasonPhrase());
 		return list;
@@ -42,7 +44,7 @@ public class InventoryService implements InventoryServiceI {
 	public InventoriesResponseModel updateInventories(InventoriesModel inventoriesModel) {
 
 		InventoriesResponseModel respModel = new InventoriesResponseModel();
-		boolean inventoryOp = inventoryRepository.existsById(inventoriesModel.getStockNumber());
+		boolean inventoryOp = findIfexists(inventoriesModel);
 		if(inventoryOp)
 		{
 			try
@@ -71,24 +73,40 @@ public class InventoryService implements InventoryServiceI {
 	@Override
 	public InventoriesResponseModel addInventories(InventoriesModel inventoriesModel) {
 		InventoriesResponseModel respModel = new InventoriesResponseModel();
-		InventoriesEntity invenEntity = new InventoriesEntity();
-		invenEntity = convert(inventoriesModel, invenEntity);
-		System.out.println(inventoriesModel.getStockName());
-		try
+
+		boolean inventoryOp = findIfexists(inventoriesModel);
+		if(!inventoryOp)
 		{
-			inventoryRepository.save(invenEntity);
-			respModel.setResponseCode(HttpStatus.CREATED.toString());
-			respModel.setResponseMsg(HttpStatus.CREATED.getReasonPhrase());
+			InventoriesEntity invenEntity = new InventoriesEntity();
+			invenEntity = convert(inventoriesModel, invenEntity);
+			System.out.println(inventoriesModel.getStockName());
+	
+			try
+			{
+				inventoryRepository.save(invenEntity);
+				respModel.setResponseCode(HttpStatus.CREATED.toString());
+				respModel.setResponseMsg(HttpStatus.CREATED.getReasonPhrase());
+			}
+			catch(Exception e)
+			{
+				respModel.setResponseCode(HttpStatus.BAD_REQUEST.toString());
+				respModel.setResponseMsg(e.getMessage());
+			}
 		}
-		catch(Exception e)
+		else
 		{
-			respModel.setResponseCode(HttpStatus.BAD_REQUEST.toString());
-			respModel.setResponseMsg(e.getMessage());
+			respModel.setResponseCode(HttpStatus.CONFLICT.toString());
+			respModel.setResponseMsg("Stock ID Already Exists");
 		}
-		
 		
 		return respModel;
 	}
+	
+	public boolean findIfexists(InventoriesModel inventoriesModel) {
+ 		boolean inventoryOp = inventoryRepository.existsById(inventoriesModel.getStockNumber());
+		return inventoryOp;
+	}
+	
 	
 	public <F,T>T convert(F from, T to)
 	{
